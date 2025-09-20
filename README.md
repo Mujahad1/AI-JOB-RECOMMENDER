@@ -25,9 +25,13 @@ This project processes job postings, cleans the text, preprocesses it using NLP 
 
 
 ## Install required packages:
---**pip install pandas spacy sentence-transformers**
---**python -m spacy download en_core_web_sm**
---**python job_nlp_embeddings.py**
+1)**pip install pandas spacy sentence-transformers**
+2)**python -m spacy download en_core_web_sm**
+3)**python job_nlp_embeddings.py**
+
+## 📌 Author
+MUJAHAD AHMED – Passionate about NLP & Data Science
+
 
 💻 How to Run
 
