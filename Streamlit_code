@@ -1,0 +1,45 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
+@st.cache_data
+def load_data():
+    # Load preprocessed job postings with embeddings
+    df = pd.read_pickle('job_postings_sample_embeddings.pkl')
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    return df, model
+
+df, model = load_data()
+
+st.title("AI Job Recommender")
+
+resume_text = st.text_area("Paste your resume text here:")
+
+def preprocess_text(text, nlp, stopwords):
+    doc = nlp(text.lower())
+    tokens = [token.lemma_ for token in doc if token.is_alpha and token.text not in stopwords]
+    return " ".join(tokens)
+
+if st.button("Find Jobs"):
+    if not resume_text.strip():
+        st.warning("Please enter your resume text!")
+    else:
+        import spacy
+        nlp = spacy.load('en_core_web_sm')
+        stopwords = spacy.lang.en.stop_words.STOP_WORDS
+
+        cleaned_resume = preprocess_text(resume_text, nlp, stopwords)
+        resume_embedding = model.encode([cleaned_resume])
+
+        job_embeddings = np.vstack(df['embeddings'])
+        similarities = cosine_similarity(resume_embedding, job_embeddings)[0]
+        top_indices = similarities.argsort()[-10:][::-1]
+        top_jobs = df.iloc[top_indices]
+
+        for _, row in top_jobs.iterrows():
+            st.subheader(row['title'])
+            st.write(f"Location: {row['location']}")
+            st.write(row['description'][:300] + "...")
+            st.write("---")
