@@ -1,0 +1,46 @@
+import pandas as pd
+import re
+# Load raw dataset
+raw_df = pd.read_csv('raw_jobs_dataset.csv')
+# Drop duplicates & keep only necessary columns
+raw_df.drop_duplicates(inplace=True)
+raw_df = raw_df[['title', 'location', 'description']]
+raw_df.dropna(subset=['description'], inplace=True)
+# Clean HTML tags and special characters in descriptions
+def clean_text(text):
+    text = re.sub(r'<.*?>', ' ', text)          # Remove HTML tags
+    text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text) # Remove special chars
+    text = re.sub(r'\s+', ' ', text)            # Normalize spaces
+    return text.strip()
+
+raw_df['description'] = raw_df['description'].astype(str).apply(clean_text)
+# Save cleaned dataset for next stages
+raw_df.to_csv('cleaned_full_jobs_dataset.csv', index=False)
+
+import pandas as pd
+import spacy
+from sentence_transformers import SentenceTransformer
+
+# Load cleaned data
+df = pd.read_csv('cleaned_full_jobs_dataset.csv')
+
+# Initialize spaCy model and stopwords
+nlp = spacy.load('en_core_web_sm')
+stopwords = spacy.lang.en.stop_words.STOP_WORDS
+
+def preprocess_text(text):
+    doc = nlp(text.lower())
+    tokens = [token.lemma_ for token in doc if token.is_alpha and token.text not in stopwords]
+    return " ".join(tokens)
+
+# Apply preprocessing
+df['cleaned_description'] = df['description'].astype(str).apply(preprocess_text)
+
+# Load sentence transformer model
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Generate embeddings on cleaned descriptions
+df['embeddings'] = model.encode(df['cleaned_description'].tolist(), show_progress_bar=True).tolist()
+
+# Save dataframe with embeddings for app
+df.to_pickle('job_postings_with_embeddings.pkl')
